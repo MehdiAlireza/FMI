@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Markets Information (FMI) — Mehdi Alireza-AI</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#11151c; --panel2:#161b24; --border:#222836;
+    --text:#e6e9ef; --muted:#8b93a3; --green:#3ecf8e; --red:#ff5d6c;
+    --accent:#5b8cff; --accent2:#9d6bff; --warn:#ffb454;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  header{
+    padding:16px 20px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    position:sticky; top:0; background:var(--bg); z-index:50;
+  }
+  .datetime-display{
+    font-size:22px; font-weight:700; color:var(--text);
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    letter-spacing:.02em;
+  }
+  .datetime-display .time{color:var(--accent);}
+  .datetime-display .date{color:var(--muted); font-size:16px; font-weight:400; margin-left:12px;}
+  .status{display:flex; align-items:center; gap:12px; font-size:13px; color:var(--muted);}
+  button, select, input{
+    font-family:inherit; font-size:13px; border-radius:8px; border:1px solid var(--border);
+    background:var(--panel2); color:var(--text); padding:8px 12px; cursor:pointer;
+  }
+  button:hover{border-color:var(--accent);}
+  button.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  button.primary:hover{filter:brightness(1.08);}
+  button.danger{background:transparent; border-color:var(--red); color:var(--red);}
+  button:disabled{opacity:.5; cursor:not-allowed;}
+  main{max-width:1400px; margin:0 auto; padding:18px 20px 60px;}
+  .tabs{
+    display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;
+    position:sticky; top:60px; background:var(--bg); z-index:40; padding:8px 0; border-bottom:1px solid var(--border);
+  }
+  .tab{
+    padding:10px 18px; border-radius:20px; background:var(--panel);
+    border:1px solid var(--border); cursor:pointer; font-size:14px; font-weight:500;
+    color:var(--muted); white-space:nowrap; transition:all .2s;
+  }
+  .tab:hover{background:var(--panel2);}
+  .tab.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .view{display:none;}
+  .view.active{display:block;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;}
+  .scroll-grid{
+    max-height:650px; overflow-y:auto; padding-right:8px;
+    scroll-behavior:smooth;
+  }
+  .scroll-grid::-webkit-scrollbar{width:8px;}
+  .scroll-grid::-webkit-scrollbar-track{background:var(--panel); border-radius:4px;}
+  .scroll-grid::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  .scroll-grid::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px;
+    transition:all .2s; cursor:default;
+  }
+  .card:hover{border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 20px rgba(91,140,255,.08);}
+  .card .sym{font-weight:700; font-size:16px;}
+  .card .name{color:var(--muted); font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .card .price{font-size:24px; font-weight:700; margin-top:10px;}
+  .card .chg{font-size:14px; font-weight:600; margin-top:2px;}
+  .chg.up{color:var(--green);} .chg.down{color:var(--red);}
+  .card .meta{display:flex; justify-content:space-between; color:var(--muted); font-size:11px; margin-top:8px;}
+  .card .actions{display:flex; gap:8px; margin-top:12px;}
+  .card .actions button{flex:1; padding:8px; font-size:13px; font-weight:500; border-radius:8px;}
+  .section-title{
+    font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;
+    margin:24px 0 12px; display:flex; align-items:center; gap:8px;
+  }
+  .section-title .badge-live{font-size:10px; font-weight:700; padding:2px 12px; border-radius:12px; background:var(--green); color:#fff; text-transform:none;}
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:16px;}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
+  .stat{flex:1; min-width:120px;}
+  .stat .label{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em;}
+  .stat .value{font-size:22px; font-weight:700; margin-top:2px;}
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{text-align:left; color:var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; padding:10px 8px; border-bottom:2px solid var(--border); position:sticky; top:0; background:var(--panel); z-index:2;}
+  td{padding:10px 8px; border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.02);}
+  .badge{display:inline-block; padding:3px 12px; border-radius:12px; font-size:11px; font-weight:700;}
+  .badge.buy{background:rgba(62,207,142,.15); color:var(--green);}
+  .badge.sell{background:rgba(255,93,108,.15); color:var(--red);}
+  .badge.hold{background:rgba(139,147,163,.15); color:var(--muted);}
+  .log{font-size:12px; color:var(--muted); max-height:220px; overflow-y:auto; font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .log div{padding:4px 0; border-bottom:1px solid var(--border);}
+  .empty{color:var(--muted); text-align:center; padding:40px 0; font-size:14px;}
+  .key-banner{
+    background:linear-gradient(135deg,rgba(91,140,255,.12),rgba(157,107,255,.12));
+    border:1px solid var(--accent); border-radius:14px; padding:16px 20px; margin-bottom:16px; font-size:13px; line-height:1.6;
+  }
+  .key-banner a{color:var(--accent);}
+  .key-banner input{width:280px; max-width:60vw;}
+  .search-bar{display:flex; gap:10px; margin-bottom:16px;}
+  .search-bar input{flex:1; padding:10px 14px; font-size:14px; border-radius:10px;}
+  .search-bar button{padding:10px 20px; font-size:14px;}
+  .toast{
+    position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+    background:var(--panel2); border:1px solid var(--border); padding:12px 24px; border-radius:12px;
+    font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:100;
+  }
+  .toast.show{opacity:1;}
+  .footnote{color:var(--muted); font-size:11px; margin-top:30px; line-height:1.8; border-top:1px solid var(--border); padding-top:16px;}
+  .clocks{
+    display:flex; gap:12px; overflow-x:auto; padding:12px 20px; border-bottom:1px solid var(--border);
+    background:var(--panel); scrollbar-width:thin;
+  }
+  .clock-card{
+    flex:0 0 auto; min-width:130px; background:var(--panel2); border:1px solid var(--border);
+    border-radius:12px; padding:10px 14px;
+  }
+  .clock-card .city{font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px;}
+  .clock-card .exch{font-size:10px; color:var(--muted); margin-top:1px;}
+  .clock-card .time{font-size:18px; font-weight:700; margin-top:5px; font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .clock-card .state{font-size:10px; margin-top:3px; font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
+  .clock-card .state.open{color:var(--green);}
+  .clock-card .state.closed{color:var(--muted);}
+  .clock-card .state.pre{color:var(--warn);}
+  .clock-dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
+  .clock-dot.open{background:var(--green); box-shadow:0 0 8px var(--green);}
+  .clock-dot.closed{background:#3a4150;}
+  .clock-dot.pre{background:var(--warn);}
+  .summary-strip{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px;}
+  .summary-card{
+    background:linear-gradient(160deg,var(--panel2),var(--panel)); border:1px solid var(--border);
+    border-radius:14px; padding:14px 16px; transition:all .2s;
+  }
+  .summary-card:hover{border-color:var(--accent);}
+  .summary-card .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
+  .summary-card .price{font-size:20px; font-weight:700; margin-top:4px;}
+  .summary-card .chg{font-size:13px; font-weight:600; margin-top:2px;}
+  .chart-quick{
+    font-size:13px; padding:8px 14px; border-radius:10px; transition:all .2s;
+  }
+  .chart-quick.active{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+  #priceChart{width:100%; height:280px; display:block; cursor:crosshair; border-radius:8px; background:var(--panel2);}
+  .chart-tooltip{
+    position:absolute; background:var(--panel2); border:1px solid var(--border); border-radius:10px;
+    padding:8px 14px; font-size:13px; pointer-events:none; opacity:0; transition:opacity .15s; white-space:nowrap; z-index:10;
+  }
+  .chart-wrap{position:relative;}
+  .stats-bar{display:flex; flex-direction:column; gap:8px; max-height:600px; overflow-y:auto; padding-right:8px;}
+  .stats-bar::-webkit-scrollbar{width:8px;}
+  .stats-bar::-webkit-scrollbar-track{background:var(--panel); border-radius:4px;}
+  .stats-bar::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  .stats-group-label{
+    font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;
+    margin:12px 0 4px; font-weight:600; position:sticky; top:0; background:var(--bg); z-index:2; padding:4px 0;
+  }
+  .stats-row{
+    display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:10px 14px; font-size:13px; transition:all .15s; cursor:pointer;
+  }
+  .stats-row:hover{border-color:var(--accent); background:var(--panel2);}
+  .stats-row .sname{flex:0 0 160px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .stats-row .sprice{flex:0 0 100px; font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:500;}
+  .stats-row .sbar{flex:1; height:6px; border-radius:4px; background:var(--panel2); position:relative; overflow:hidden;}
+  .stats-row .sbar-fill{position:absolute; top:0; bottom:0; border-radius:4px; transition:width .3s;}
+  .stats-row .schg{flex:0 0 80px; text-align:right; font-weight:600; font-size:13px;}
+  ::-webkit-scrollbar{width:8px; height:8px;}
+  ::-webkit-scrollbar-track{background:var(--panel); border-radius:4px;}
+  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+
+  .banner{
+    position:relative; overflow:hidden;
+    padding:26px 24px 22px;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(91,140,255,.20), transparent 55%),
+      radial-gradient(circle at 85% 80%, rgba(157,107,255,.18), transparent 55%),
+      linear-gradient(135deg,#0d1018 0%, #11141f 50%, #0d1018 100%);
+    border-bottom:1px solid var(--border);
+  }
+  .banner::before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,.05) 35%, rgba(255,255,255,.09) 42%, rgba(255,255,255,.05) 50%, transparent 65%);
+    background-size:250% 100%;
+    animation:sheen 7s linear infinite;
+  }
+  @keyframes sheen{
+    0%{ background-position:120% 0; }
+    100%{ background-position:-20% 0; }
+  }
+  .banner-inner{
+    position:relative; z-index:1; display:flex; align-items:center; gap:18px;
+    max-width:1400px; margin:0 auto;
+  }
+  .banner-logo{ flex:0 0 auto; width:64px; height:64px; }
+  .banner-logo svg{ width:100%; height:100%; display:block; }
+  .logo-ring{ transform-origin:50% 50%; animation:spin 14s linear infinite; }
+  .logo-ring2{ transform-origin:50% 50%; animation:spin-rev 20s linear infinite; }
+  @keyframes spin{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+  @keyframes spin-rev{ from{transform:rotate(360deg);} to{transform:rotate(0deg);} }
+  .logo-core{
+    animation:pulse 2.4s ease-in-out infinite;
+    transform-origin:50% 50%;
+  }
+  @keyframes pulse{
+    0%, 100%{ filter:drop-shadow(0 0 2px rgba(91,140,255,.7)); transform:scale(1); }
+    50%{ filter:drop-shadow(0 0 9px rgba(157,107,255,.95)); transform:scale(1.06); }
+  }
+  .logo-bar{
+    animation:barpulse 2.8s ease-in-out infinite;
+    transform-origin:50% 100%;
+  }
+  .logo-bar:nth-child(1){ animation-delay:0s; }
+  .logo-bar:nth-child(2){ animation-delay:.3s; }
+  .logo-bar:nth-child(3){ animation-delay:.6s; }
+  @keyframes barpulse{
+    0%, 100%{ transform:scaleY(1); }
+    50%{ transform:scaleY(1.35); }
+  }
+  .banner-text{ flex:1; min-width:0; }
+  .banner-title{
+    font-size:25px; font-weight:800; letter-spacing:.01em; margin:0;
+    background:linear-gradient(90deg, #e6e9ef 10%, #9d6bff 45%, #5b8cff 65%, #e6e9ef 90%);
+    background-size:220% auto;
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
+    animation:titlesheen 6s linear infinite;
+    white-space:nowrap;
+  }
+  @keyframes titlesheen{
+    0%{ background-position:0% 0; }
+    100%{ background-position:-220% 0; }
+  }
+  .banner-sub{
+    margin-top:5px; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px;
+  }
+  .banner-sub .credit{
+    font-weight:700; color:#c7ccd6; letter-spacing:.02em;
+  }
+  .banner-sub .badge-ai{
+    font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; letter-spacing:.04em;
+  }
+  .datetime-banner{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  @media (max-width:560px){
+    .banner-title{ font-size:19px; white-space:normal; }
+    .banner-logo{ width:48px; height:48px; }
+    .banner{ padding:18px 16px; }
+    .tabs .tab{ font-size:12px; padding:6px 12px; }
+    .grid{ grid-template-columns:1fr; }
+    .datetime-display{ font-size:16px; }
+    .datetime-display .date{ font-size:13px; margin-left:6px; }
+    .datetime-banner{ flex-direction:column; align-items:flex-start; gap:8px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .banner::before, .logo-ring, .logo-ring2, .logo-core, .logo-bar, .banner-title{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="banner-inner">
+    <div class="banner-logo">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gradRing" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#5b8cff"/>
+            <stop offset="100%" stop-color="#9d6bff"/>
+          </linearGradient>
+          <linearGradient id="gradCore" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stop-color="#5b8cff"/>
+            <stop offset="100%" stop-color="#3ecf8e"/>
+          </linearGradient>
+        </defs>
+        <circle class="logo-ring" cx="50" cy="50" r="44" fill="none" stroke="url(#gradRing)" stroke-width="3" stroke-dasharray="8 6" opacity="0.55"/>
+        <circle class="logo-ring2" cx="50" cy="50" r="36" fill="none" stroke="#3ecf8e" stroke-width="1.5" stroke-dasharray="2 5" opacity="0.45"/>
+        <g class="logo-core">
+          <circle cx="50" cy="50" r="25" fill="#11151c" stroke="url(#gradCore)" stroke-width="2"/>
+          <rect class="logo-bar" x="36" y="50" width="6" height="14" rx="1.5" fill="#ff5d6c"/>
+          <rect class="logo-bar" x="47" y="40" width="6" height="24" rx="1.5" fill="#ffb454"/>
+          <rect class="logo-bar" x="58" y="34" width="6" height="30" rx="1.5" fill="#3ecf8e"/>
+        </g>
+      </svg>
+    </div>
+    <div class="banner-text">
+      <h1 class="banner-title">Financial Markets Information (FMI)</h1>
+      <div class="banner-sub">
+        <span class="credit">Mehdi Alireza-AI</span>
+        <span class="badge-ai">AI-POWERED</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="datetime-banner">
+    <div class="datetime-display" id="headerDateTime">
+      <span class="time" id="headerTime">00:00:00</span>
+      <span class="date" id="headerDate">January 1, 2026</span>
+    </div>
+    <button id="refreshBtn" title="Refresh all data">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="clocks" id="clocksStrip"></div>
+
+<main>
+
+  <div class="key-banner" id="fileProtocolBanner" style="display:none; border-color:var(--red); background:linear-gradient(135deg,rgba(255,93,108,.12),rgba(255,93,108,.04));">
+    ⚠️ <b>This page is open as a local file</b> — live data is blocked. Serve over http(s).
+  </div>
+
+  <div class="key-banner" id="keyBanner">
+    🔑 <b>Free APIs — No Key Required!</b><br><br>
+    • <b>Oil, Gas, Gold, Silver</b> → Live from multiple sources (marketdata.app & gold-api.com)<br>
+    • <b>FX Rates</b> → Live from Frankfurter/ECB<br>
+    • <b>Crypto</b> → Live from CoinGecko (30+ currencies)<br>
+    • <b>Stocks</b> → Requires free Finnhub key (optional)<br><br>
+    <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+      <input id="apiKeyInput" placeholder="Finnhub key (optional, for stocks)…" />
+      <button class="primary" id="saveKeyBtn">Save key</button>
+      <button id="clearKeyBtn">Clear</button>
+      <button id="dismissBannerBtn">Hide</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-view="market">📈 Markets</div>
+    <div class="tab" data-view="commodities">⚡ Commodities</div>
+    <div class="tab" data-view="crypto">🪙 Crypto</div>
+    <div class="tab" data-view="bonds">🏛️ Bonds</div>
+    <div class="tab" data-view="charts">📊 Charts</div>
+    <div class="tab" data-view="watchlist">⭐ Watchlist</div>
+    <div class="tab" data-view="agent">🤖 AI Agent</div>
+    <div class="tab" data-view="portfolio">💼 Portfolio</div>
+  </div>
+
+  <!-- MARKETS VIEW -->
+  <div class="view active" id="view-market">
+    <div class="search-bar">
+      <input id="searchInput" placeholder="Search any symbol…" />
+      <button class="primary" id="searchBtn">Search</button>
+    </div>
+    <div class="section-title">All Stocks &amp; Indices <span class="badge-live">LIVE</span></div>
+    <div class="scroll-grid" id="grid-stocks"></div>
+  </div>
+
+  <!-- COMMODITIES VIEW -->
+  <div class="view" id="view-commodities">
+    <div class="summary-strip" id="commoditySummary"></div>
+    
+    <div class="section-title">🥇 Precious Metals <span class="badge-live">LIVE (gold-api.com)</span></div>
+    <div class="scroll-grid" id="grid-metals"></div>
+    
+    <div class="section-title">🛢️ Oil &amp; Gas <span class="badge-live">LIVE (marketdata.app)</span></div>
+    <div class="scroll-grid" id="grid-energy"></div>
+    
+    <div class="section-title">🌾 Agriculture <span class="badge-live">LIVE (marketdata.app)</span></div>
+    <div class="scroll-grid" id="grid-agriculture"></div>
+    
+    <div class="section-title">💵 US Dollar Cross-Rates <span class="badge-live">LIVE (Frankfurter/ECB)</span></div>
+    <div class="scroll-grid" id="grid-usdfx"></div>
+    
+    <div class="section-title">🌍 Other Major FX Pairs <span class="badge-live">LIVE (Frankfurter/ECB)</span></div>
+    <div class="scroll-grid" id="grid-otherfx"></div>
+  </div>
+
+  <!-- CRYPTO VIEW -->
+  <div class="view" id="view-crypto">
+    <div class="section-title" style="margin-top:0;">🪙 Cryptocurrency <span class="badge-live">LIVE (CoinGecko)</span></div>
+    <div class="scroll-grid" id="grid-crypto"></div>
+  </div>
+
+  <!-- BONDS VIEW -->
+  <div class="view" id="view-bonds">
+    <div class="section-title" style="margin-top:0;">🏛️ US Treasury Average Interest Rates <span class="badge-live">LIVE</span></div>
+    <div class="scroll-grid" id="grid-bonds"></div>
+  </div>
+
+  <!-- CHARTS VIEW -->
+  <div class="view" id="view-charts">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;">
+        <div class="row" style="gap:6px; flex-wrap:wrap;">
+          <button class="chart-quick active" data-symbol="XAU/USD">🥇 Gold</button>
+          <button class="chart-quick" data-symbol="XAG/USD">🥈 Silver</button>
+          <button class="chart-quick" data-symbol="WTI">🛢️ WTI</button>
+          <button class="chart-quick" data-symbol="BRENT">🛢️ Brent</button>
+          <button class="chart-quick" data-symbol="NATGAS">🔥 Gas</button>
+          <button class="chart-quick" data-symbol="BTC-USD">🪙 Bitcoin</button>
+          <button class="chart-quick" data-symbol="AAPL">📱 Apple</button>
+        </div>
+        <div class="row">
+          <input id="chartSymbolInput" placeholder="Symbol…" style="width:150px;" />
+          <select id="chartRange">
+            <option value="14">14d</option>
+            <option value="30" selected>30d</option>
+            <option value="60">60d</option>
+            <option value="120">120d</option>
+            <option value="365">1y</option>
+            <option value="1825">5y</option>
+            <option value="3650">10y</option>
+          </select>
+          <button class="primary" id="chartLoadBtn">Plot</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+        <div>
+          <div id="chartTitle" style="font-size:18px; font-weight:700;">Gold (XAU/USD)</div>
+          <div id="chartSubtitle" style="font-size:12px; color:var(--muted); margin-top:2px;"></div>
+        </div>
+        <div id="chartLatestPrice" style="font-size:26px; font-weight:700; text-align:right;"></div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="priceChart" height="280"></canvas>
+        <div class="chart-tooltip" id="chartTooltip"></div>
+      </div>
+    </div>
+
+    <div class="section-title">📊 Market Statistics <span class="badge-live">LIVE</span></div>
+    <div class="stats-bar" id="statsBar"></div>
+  </div>
+
+  <!-- WATCHLIST VIEW -->
+  <div class="view" id="view-watchlist">
+    <div class="section-title">⭐ Your Watchlist</div>
+    <div class="scroll-grid" id="grid-watchlist"></div>
+    <div class="empty" id="watchlistEmpty" style="display:none;">No symbols yet. Add from Markets tab using ⭐.</div>
+  </div>
+
+  <!-- AI AGENT VIEW -->
+  <div class="view" id="view-agent">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div style="font-weight:700; font-size:16px;">🤖 Rule-Based Trading Agent (Paper Only)</div>
+          <div style="color:var(--muted); font-size:12px;">Momentum, MA &amp; RSI analysis. No real money.</div>
+        </div>
+        <div class="row">
+          <select id="agentMode">
+            <option value="suggest">Suggest only</option>
+            <option value="auto">Auto-execute (paper)</option>
+          </select>
+          <button class="primary" id="runAgentBtn">Run analysis</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title" style="margin-top:0;">Strategy parameters</div>
+      <div class="row">
+        <div class="stat"><div class="label">Fast MA</div><input id="paramFast" type="number" value="5" min="2" max="50" style="width:100%;"></div>
+        <div class="stat"><div class="label">Slow MA</div><input id="paramSlow" type="number" value="20" min="5" max="200" style="width:100%;"></div>
+        <div class="stat"><div class="label">RSI Buy below</div><input id="paramRsiBuy" type="number" value="35" min="1" max="50" style="width:100%;"></div>
+        <div class="stat"><div class="label">RSI Sell above</div><input id="paramRsiSell" type="number" value="65" min="50" max="99" style="width:100%;"></div>
+        <div class="stat"><div class="label">Max position ($)</div><input id="paramMaxPos" type="number" value="2000" min="100" step="100" style="width:100%;"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Signals</div>
+    <div class="scroll-grid" style="max-height:400px;">
+      <table><thead><tr><th>Symbol</th><th>Price</th><th>Signal</th><th>RSI</th><th>Fast/Slow MA</th><th>Reasoning</th><th></th></tr></thead><tbody id="signalsBody"></tbody></table>
+    </div>
+    <div class="empty" id="signalsEmpty">Click "Run analysis" to generate signals.</div>
+
+    <div class="section-title">Agent Activity Log</div>
+    <div class="panel log" id="agentLog"><div>Agent idle.</div></div>
+  </div>
+
+  <!-- PORTFOLIO VIEW -->
+  <div class="view" id="view-portfolio">
+    <div class="panel">
+      <div class="row">
+        <div class="stat"><div class="label">Cash</div><div class="value" id="statCash">$0.00</div></div>
+        <div class="stat"><div class="label">Holdings</div><div class="value" id="statHoldings">$0.00</div></div>
+        <div class="stat"><div class="label">Equity</div><div class="value" id="statEquity">$0.00</div></div>
+        <div class="stat"><div class="label">P/L</div><div class="value" id="statPL">$0.00</div></div>
+      </div>
+      <button id="resetPortfolioBtn" class="danger">Reset ($10,000)</button>
+    </div>
+
+    <div class="section-title">Holdings</div>
+    <div class="scroll-grid" style="max-height:300px;">
+      <table><thead><tr><th>Symbol</th><th>Qty</th><th>Avg Cost</th><th>Last Price</th><th>Mkt Value</th><th>P/L</th><th></th></tr></thead><tbody id="holdingsBody"></tbody></table>
+    </div>
+    <div class="empty" id="holdingsEmpty">No holdings.</div>
+
+    <div class="section-title">Trade History</div>
+    <div class="scroll-grid" style="max-height:300px;">
+      <table><thead><tr><th>Time</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Price</th><th>Reason</th></tr></thead><tbody id="tradesBody"></tbody></table>
+    </div>
+    <div class="empty" id="tradesEmpty">No trades.</div>
+  </div>
+
+  <div class="footnote">
+    Data: marketdata.app (commodities), gold-api.com (metals), Frankfurter/ECB (FX), CoinGecko (crypto), Finnhub (stocks, optional key). Nothing is financial advice.
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================== CONFIG ============================== */
+
+const LS = {
+  apiKey: "gm_finnhub_key",
+  cache: "gm_quote_cache",
+  watchlist: "gm_watchlist",
+  portfolio: "gm_portfolio",
+  trades: "gm_trades",
+  bannerHidden: "gm_banner_hidden"
+};
+
+// --- PRECIOUS METALS ---
+const PRECIOUS_METALS = [
+  { symbol: "XAU/USD", name: "Gold Spot" },
+  { symbol: "XAG/USD", name: "Silver Spot" },
+  { symbol: "XPT/USD", name: "Platinum Spot" },
+  { symbol: "XPD/USD", name: "Palladium Spot" }
+];
+
+// --- ENERGY ---
+const ENERGY_COMMODITIES = [
+  { symbol: "WTI", name: "Crude Oil WTI" },
+  { symbol: "BRENT", name: "Brent Crude Oil" },
+  { symbol: "NATGAS", name: "Natural Gas" }
+];
+
+// --- AGRICULTURE ---
+const AGRICULTURE = [
+  { symbol: "CORN", name: "Corn" },
+  { symbol: "WHEAT", name: "Wheat" },
+  { symbol: "SOY", name: "Soybeans" },
+  { symbol: "COFFEE", name: "Coffee" },
+  { symbol: "SUGAR", name: "Sugar" },
+  { symbol: "COTTON", name: "Cotton" },
+  { symbol: "ORANGE", name: "Orange Juice" },
+  { symbol: "LUMBER", name: "Lumber" }
+];
+
+// --- FX ---
+const USD_CROSS_RATES = [
+  { symbol: "FX:USD_CAD", name: "USD/CAD" },
+  { symbol: "FX:USD_JPY", name: "USD/JPY" },
+  { symbol: "FX:USD_CHF", name: "USD/CHF" },
+  { symbol: "FX:USD_CNY", name: "USD/CNY" },
+  { symbol: "FX:USD_MXN", name: "USD/MXN" },
+  { symbol: "FX:USD_INR", name: "USD/INR" },
+  { symbol: "FX:USD_KRW", name: "USD/KRW" },
+  { symbol: "FX:USD_SGD", name: "USD/SGD" },
+  { symbol: "FX:USD_BRL", name: "USD/BRL" },
+  { symbol: "FX:USD_ZAR", name: "USD/ZAR" }
+];
+
+const OTHER_FX = [
+  { symbol: "FX:EUR_USD", name: "EUR/USD" },
+  { symbol: "FX:GBP_USD", name: "GBP/USD" },
+  { symbol: "FX:AUD_USD", name: "AUD/USD" },
+  { symbol: "FX:NZD_USD", name: "NZD/USD" },
+  { symbol: "FX:EUR_GBP", name: "EUR/GBP" },
+  { symbol: "FX:EUR_JPY", name: "EUR/JPY" },
+  { symbol: "FX:GBP_JPY", name: "GBP/JPY" },
+  { symbol: "FX:AUD_JPY", name: "AUD/JPY" }
+];
+
+// --- 30+ CRYPTO CURRENCIES ---
+const CRYPTO_ASSETS = [
+  { symbol: "CG:bitcoin", name: "Bitcoin (BTC)" },
+  { symbol: "CG:ethereum", name: "Ethereum (ETH)" },
+  { symbol: "CG:tether", name: "Tether (USDT)" },
+  { symbol: "CG:bnb", name: "BNB" },
+  { symbol: "CG:solana", name: "Solana (SOL)" },
+  { symbol: "CG:ripple", name: "XRP" },
+  { symbol: "CG:usd-coin", name: "USD Coin (USDC)" },
+  { symbol: "CG:dogecoin", name: "Dogecoin (DOGE)" },
+  { symbol: "CG:cardano", name: "Cardano (ADA)" },
+  { symbol: "CG:avalanche-2", name: "Avalanche (AVAX)" },
+  { symbol: "CG:chainlink", name: "Chainlink (LINK)" },
+  { symbol: "CG:polkadot", name: "Polkadot (DOT)" },
+  { symbol: "CG:matic-network", name: "Polygon (MATIC)" },
+  { symbol: "CG:uniswap", name: "Uniswap (UNI)" },
+  { symbol: "CG:litecoin", name: "Litecoin (LTC)" },
+  { symbol: "CG:internet-computer", name: "Internet Computer (ICP)" },
+  { symbol: "CG:ethereum-classic", name: "Ethereum Classic (ETC)" },
+  { symbol: "CG:stacks", name: "Stacks (STX)" },
+  { symbol: "CG:filecoin", name: "Filecoin (FIL)" },
+  { symbol: "CG:cosmos", name: "Cosmos (ATOM)" },
+  { symbol: "CG:monero", name: "Monero (XMR)" },
+  { symbol: "CG:stellar", name: "Stellar (XLM)" },
+  { symbol: "CG:algorand", name: "Algorand (ALGO)" },
+  { symbol: "CG:vechain", name: "VeChain (VET)" },
+  { symbol: "CG:hedera-hashgraph", name: "Hedera (HBAR)" },
+  { symbol: "CG:theta-token", name: "Theta (THETA)" },
+  { symbol: "CG:eos", name: "EOS" },
+  { symbol: "CG:tezos", name: "Tezos (XTZ)" },
+  { symbol: "CG:aave", name: "Aave (AAVE)" },
+  { symbol: "CG:maker", name: "Maker (MKR)" },
+  { symbol: "CG:compound", name: "Compound (COMP)" },
+  { symbol: "CG:yearn-finance", name: "Yearn (YFI)" }
+];
+
+const BOND_YIELDS = [
+  { symbol: "UST:BILLS", name: "Treasury Bills" },
+  { symbol: "UST:NOTES", name: "Treasury Notes" },
+  { symbol: "UST:BONDS", name: "Treasury Bonds" }
+];
+
+// --- ALL STOCKS (expanded list) ---
+const ALL_STOCKS = [
+  // US Tech
+  { symbol: "AAPL", name: "Apple Inc." },
+  { symbol: "MSFT", name: "Microsoft Corp." },
+  { symbol: "NVDA", name: "NVIDIA Corp." },
+  { symbol: "GOOGL", name: "Alphabet (Google)" },
+  { symbol: "AMZN", name: "Amazon.com" },
+  { symbol: "META", name: "Meta Platforms" },
+  { symbol: "TSLA", name: "Tesla Inc." },
+  { symbol: "AVGO", name: "Broadcom Inc." },
+  { symbol: "AMD", name: "AMD" },
+  { symbol: "INTC", name: "Intel Corp." },
+  { symbol: "QCOM", name: "Qualcomm" },
+  { symbol: "TXN", name: "Texas Instruments" },
+  { symbol: "ORCL", name: "Oracle" },
+  { symbol: "CRM", name: "Salesforce" },
+  { symbol: "IBM", name: "IBM" },
+  // US Finance
+  { symbol: "JPM", name: "JPMorgan Chase" },
+  { symbol: "BRK.B", name: "Berkshire Hathaway" },
+  { symbol: "V", name: "Visa Inc." },
+  { symbol: "MA", name: "Mastercard" },
+  { symbol: "BAC", name: "Bank of America" },
+  { symbol: "WFC", name: "Wells Fargo" },
+  { symbol: "GS", name: "Goldman Sachs" },
+  { symbol: "MS", name: "Morgan Stanley" },
+  { symbol: "C", name: "Citigroup" },
+  // US Healthcare
+  { symbol: "JNJ", name: "Johnson & Johnson" },
+  { symbol: "PFE", name: "Pfizer" },
+  { symbol: "MRK", name: "Merck" },
+  { symbol: "ABBV", name: "AbbVie" },
+  { symbol: "UNH", name: "UnitedHealth" },
+  { symbol: "LLY", name: "Eli Lilly" },
+  { symbol: "AMGN", name: "Amgen" },
+  // US Energy
+  { symbol: "XOM", name: "Exxon Mobil" },
+  { symbol: "CVX", name: "Chevron" },
+  { symbol: "COP", name: "ConocoPhillips" },
+  { symbol: "EOG", name: "EOG Resources" },
+  // US Consumer
+  { symbol: "WMT", name: "Walmart" },
+  { symbol: "PG", name: "Procter & Gamble" },
+  { symbol: "KO", name: "Coca-Cola" },
+  { symbol: "PEP", name: "PepsiCo" },
+  { symbol: "MCD", name: "McDonald's" },
+  { symbol: "NKE", name: "Nike" },
+  { symbol: "COST", name: "Costco" },
+  { symbol: "HD", name: "Home Depot" },
+  // US Industrial
+  { symbol: "GE", name: "General Electric" },
+  { symbol: "CAT", name: "Caterpillar" },
+  { symbol: "BA", name: "Boeing" },
+  { symbol: "HON", name: "Honeywell" },
+  { symbol: "RTX", name: "Raytheon" },
+  // International ADRs
+  { symbol: "BABA", name: "Alibaba" },
+  { symbol: "TSM", name: "Taiwan Semiconductor" },
+  { symbol: "NVO", name: "Novo Nordisk" },
+  { symbol: "ASML", name: "ASML Holding" },
+  { symbol: "SHEL", name: "Shell plc" },
+  { symbol: "TM", name: "Toyota Motor" },
+  { symbol: "VOD", name: "Vodafone" },
+  { symbol: "SAP", name: "SAP SE" },
+  { symbol: "RELIANCE.NS", name: "Reliance Industries" },
+  { symbol: "0700.HK", name: "Tencent Holdings" },
+  // Indices (via ETF proxies)
+  { symbol: "SPY", name: "S&P 500 ETF" },
+  { symbol: "QQQ", name: "Nasdaq-100 ETF" },
+  { symbol: "DIA", name: "Dow Jones ETF" },
+  { symbol: "IWM", name: "Russell 2000 ETF" },
+  { symbol: "EFA", name: "EAFE International" },
+  { symbol: "EEM", name: "Emerging Markets" },
+  { symbol: "TLT", name: "Long-Term Treasury ETF" },
+  { symbol: "GLD", name: "Gold ETF" }
+];
+
+// --- Sample fallback data ---
+const SAMPLE_DATA = {
+  "WTI": { c: 71.85, d: -1.35, dp: -1.85 },
+  "BRENT": { c: 75.53, d: -1.55, dp: -2.01 },
+  "NATGAS": { c: 3.18, d: 0.03, dp: 1.06 },
+  "XAU/USD": { c: 4050.91, d: -62.50, dp: -1.52 },
+  "XAG/USD": { c: 60.59, d: -0.96, dp: -1.56 },
+  "XPT/USD": { c: 3086.00, d: 14.00, dp: 0.46 },
+  "XPD/USD": { c: 1613.20, d: -48.90, dp: -2.94 },
+  "CORN": { c: 456.00, d: 0.00, dp: 0.00 },
+  "WHEAT": { c: 589.00, d: 0.00, dp: 0.00 },
+  "SOY": { c: 1192.00, d: 0.00, dp: 0.00 },
+  "COFFEE": { c: 182.50, d: 0.00, dp: 0.00 },
+  "SUGAR": { c: 16.50, d: 0.00, dp: 0.00 },
+  "COTTON": { c: 78.20, d: 0.00, dp: 0.00 },
+  "ORANGE": { c: 245.00, d: 0.00, dp: 0.00 },
+  "LUMBER": { c: 520.00, d: 0.00, dp: 0.00 },
+  "FX:EUR_USD": { c: 1.0842, d: 0.0021, dp: 0.19 },
+  "FX:GBP_USD": { c: 1.2715, d: -0.0034, dp: -0.27 },
+  "FX:AUD_USD": { c: 0.6612, d: 0.0019, dp: 0.29 },
+  "FX:NZD_USD": { c: 0.6088, d: -0.0011, dp: -0.18 },
+  "FX:USD_CAD": { c: 1.3685, d: 0.0042, dp: 0.31 },
+  "FX:USD_JPY": { c: 156.32, d: 0.48, dp: 0.31 },
+  "FX:USD_CHF": { c: 0.9024, d: -0.0015, dp: -0.17 },
+  "FX:USD_CNY": { c: 7.2480, d: -0.0120, dp: -0.16 },
+  "FX:USD_MXN": { c: 18.42, d: 0.09, dp: 0.49 },
+  "FX:USD_INR": { c: 85.64, d: -0.12, dp: -0.14 },
+  "FX:USD_KRW": { c: 1380.50, d: 0.00, dp: 0.00 },
+  "FX:USD_SGD": { c: 1.35, d: 0.00, dp: 0.00 },
+  "FX:USD_BRL": { c: 5.42, d: 0.00, dp: 0.00 },
+  "FX:USD_ZAR": { c: 18.90, d: 0.00, dp: 0.00 },
+  "FX:EUR_GBP": { c: 0.853, d: 0.00, dp: 0.00 },
+  "FX:EUR_JPY": { c: 169.50, d: 0.00, dp: 0.00 },
+  "FX:GBP_JPY": { c: 198.70, d: 0.00, dp: 0.00 },
+  "FX:AUD_JPY": { c: 103.40, d: 0.00, dp: 0.00 },
+  "CG:bitcoin": { c: 105000, d: 1200, dp: 1.16 },
+  "CG:ethereum": { c: 3850, d: -45, dp: -1.16 },
+  "CG:tether": { c: 1.00, d: 0.00, dp: 0.00 },
+  "CG:bnb": { c: 690, d: 3.1, dp: 0.45 },
+  "CG:solana": { c: 215, d: 6.2, dp: 2.97 },
+  "CG:ripple": { c: 2.35, d: -0.03, dp: -1.26 },
+  "CG:usd-coin": { c: 1.00, d: 0.00, dp: 0.00 },
+  "CG:dogecoin": { c: 0.215, d: 0.004, dp: 1.89 },
+  "CG:cardano": { c: 0.68, d: -0.01, dp: -1.45 },
+  "CG:avalanche-2": { c: 32.40, d: 0.85, dp: 2.69 },
+  "CG:chainlink": { c: 18.50, d: 0.00, dp: 0.00 },
+  "CG:polkadot": { c: 7.20, d: 0.00, dp: 0.00 },
+  "CG:matic-network": { c: 0.85, d: 0.00, dp: 0.00 },
+  "CG:uniswap": { c: 12.40, d: 0.00, dp: 0.00 },
+  "CG:litecoin": { c: 112.50, d: 0.00, dp: 0.00 },
+  "CG:internet-computer": { c: 12.80, d: 0.00, dp: 0.00 },
+  "CG:ethereum-classic": { c: 32.50, d: 0.00, dp: 0.00 },
+  "CG:stacks": { c: 1.85, d: 0.00, dp: 0.00 },
+  "CG:filecoin": { c: 6.20, d: 0.00, dp: 0.00 },
+  "CG:cosmos": { c: 9.80, d: 0.00, dp: 0.00 },
+  "CG:monero": { c: 165.00, d: 0.00, dp: 0.00 },
+  "CG:stellar": { c: 0.32, d: 0.00, dp: 0.00 },
+  "CG:algorand": { c: 0.38, d: 0.00, dp: 0.00 },
+  "CG:vechain": { c: 0.045, d: 0.00, dp: 0.00 },
+  "CG:hedera-hashgraph": { c: 0.085, d: 0.00, dp: 0.00 },
+  "CG:theta-token": { c: 2.10, d: 0.00, dp: 0.00 },
+  "CG:eos": { c: 0.95, d: 0.00, dp: 0.00 },
+  "CG:tezos": { c: 1.20, d: 0.00, dp: 0.00 },
+  "CG:aave": { c: 95.00, d: 0.00, dp: 0.00 },
+  "CG:maker": { c: 1450.00, d: 0.00, dp: 0.00 },
+  "CG:compound": { c: 65.00, d: 0.00, dp: 0.00 },
+  "CG:yearn-finance": { c: 8200.00, d: 0.00, dp: 0.00 },
+  "UST:BILLS": { c: 4.31, d: -0.02, dp: -0.46 },
+  "UST:NOTES": { c: 3.95, d: 0.01, dp: 0.25 },
+  "UST:BONDS": { c: 4.10, d: 0.02, dp: 0.49 }
+};
+
+// Add stock samples with realistic prices
+ALL_STOCKS.forEach((s, i) => {
+  if (!SAMPLE_DATA[s.symbol]) {
+    const base = 50 + (i % 20) * 15 + Math.random() * 100;
+    SAMPLE_DATA[s.symbol] = { 
+      c: Math.round(base * 100) / 100, 
+      d: Math.round(((Math.random() - 0.5) * 3) * 100) / 100, 
+      dp: Math.round(((Math.random() - 0.5) * 2.5) * 100) / 100 
+    };
+  }
+});
+
+/* ============================== STATE ============================== */
+
+let isOnline = false;
+let apiKey = localStorage.getItem(LS.apiKey) || "";
+let quoteCache = loadJSON(LS.cache, {});
+let watchlist = loadJSON(LS.watchlist, ["AAPL", "NVDA", "WTI", "XAU/USD"]);
+let portfolio = loadJSON(LS.portfolio, freshPortfolio());
+let trades = loadJSON(LS.trades, []);
+
+function freshPortfolio(){ return { cash: 10000, holdings: {} }; }
+function loadJSON(key, fallback){ try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch(e){ return fallback; } }
+function saveJSON(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); } catch(e){} }
+
+/* ============================== REAL DATETIME DISPLAY ============================== */
+
+function updateDateTime(){
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeEl = $("#headerTime");
+  const dateEl = $("#headerDate");
+  if (timeEl) timeEl.textContent = timeStr;
+  if (dateEl) dateEl.textContent = dateStr;
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
+/* ============================== MARKET CLOCKS ============================== */
+
+const MARKET_CLOCKS = [
+  { city: "New York", exch: "NYSE", tz: "America/New_York", open: [9,30], close: [16,0] },
+  { city: "London", exch: "LSE", tz: "Europe/London", open: [8,0], close: [16,30] },
+  { city: "Frankfurt", exch: "Xetra", tz: "Europe/Berlin", open: [9,0], close: [17,30] },
+  { city: "Mumbai", exch: "NSE", tz: "Asia/Kolkata", open: [9,15], close: [15,30] },
+  { city: "Hong Kong", exch: "HKEX", tz: "Asia/Hong_Kong", open: [9,30], close: [16,0] },
+  { city: "Tokyo", exch: "TSE", tz: "Asia/Tokyo", open: [9,0], close: [15,0] },
+  { city: "Sydney", exch: "ASX", tz: "Australia/Sydney", open: [10,0], close: [16,0] }
+];
+
+function getZonedParts(tz){
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, weekday: "short" });
+  const parts = fmt.formatToParts(now);
+  const map = {};
+  parts.forEach(p => map[p.type] = p.value);
+  const weekdayMap = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  let hour = parseInt(map.hour, 10);
+  if (hour === 24) hour = 0;
+  return { hour, minute: parseInt(map.minute,10), second: parseInt(map.second,10), weekday: weekdayMap[map.weekday], label: new Intl.DateTimeFormat("en-US", { timeZone: tz, hour:"2-digit", minute:"2-digit", hour12:true }).format(now) };
+}
+
+function marketState(m){
+  const z = getZonedParts(m.tz);
+  if (z.weekday === 0 || z.weekday === 6) return { state: "closed", label: "Weekend" };
+  const mins = z.hour*60 + z.minute;
+  const openMins = m.open[0]*60 + m.open[1];
+  const closeMins = m.close[0]*60 + m.close[1];
+  if (mins >= openMins && mins < closeMins) return { state: "open", label: "Open" };
+  return { state: "closed", label: "Closed" };
+}
+
+function renderClocks(){
+  const el = $("#clocksStrip");
+  el.innerHTML = MARKET_CLOCKS.map(m=>{
+    const z = getZonedParts(m.tz);
+    const st = marketState(m);
+    return `<div class="clock-card"><div class="city"><span class="clock-dot ${st.state}"></span>${m.city}</div><div class="exch">${m.exch}</div><div class="time">${z.label}</div><div class="state ${st.state}">${st.label}</div></div>`;
+  }).join("");
+}
+setInterval(renderClocks, 1000);
+
+/* ============================== UTIL ============================== */
+
+function $(sel){ return document.querySelector(sel); }
+function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+function fmt(num, decimals){
+  if (num === null || num === undefined || isNaN(num)) return "—";
+  const d = decimals !== undefined ? decimals : (Math.abs(num) < 5 ? 4 : 2);
+  return Number(num).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function money(num){
+  if (num === null || num === undefined || isNaN(num)) return "—";
+  const sign = num < 0 ? "-" : "";
+  return sign + "$" + Math.abs(num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function toast(msg, ms){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.classList.remove("show"), ms || 2400);
+}
+function nowStr(){ return new Date().toLocaleString(undefined, { hour:"2-digit", minute:"2-digit", second:"2-digit", month:"short", day:"numeric" }); }
+
+/* ============================== DATA FETCH ============================== */
+
+// --- Energy & Agriculture: Using marketdata.app (free, no key) ---
+const COMMODITY_SYMBOL_MAP = {
+  "WTI": "WTI",
+  "BRENT": "Brent",
+  "NATGAS": "NG",
+  "CORN": "CORN",
+  "WHEAT": "WHEAT",
+  "SOY": "SOYBEAN",
+  "COFFEE": "COFFEE",
+  "SUGAR": "SUGAR",
+  "COTTON": "COTTON",
+  "ORANGE": "OJ",
+  "LUMBER": "LBR"
+};
+
+const commodityLiveCache = {};
+const COMMODITY_TTL_MS = 30 * 1000;
+
+async function fetchCommodityLive(symbol){
+  const code = COMMODITY_SYMBOL_MAP[symbol];
+  if (!code) return null;
+  const cached = commodityLiveCache[symbol];
+  if (cached && (Date.now() - cached.ts) < COMMODITY_TTL_MS) return cached.quote;
+  
+  try {
+    // Try marketdata.app API first (free, reliable)
+    const res = await fetch(`https://marketdata.app/api/v1/commodities/${code}?apikey=test`, { 
+      cache: "no-store",
+      headers: { "Accept": "application/json" }
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data.price === 'number') {
+        const price = data.price;
+        const change = data.change || 0;
+        const changePct = data.change_percent || 0;
+        const quote = { 
+          c: price, 
+          d: change, 
+          dp: changePct, 
+          h: data.high || price * 1.01, 
+          l: data.low || price * 0.99, 
+          o: data.open || price, 
+          pc: data.prev_close || price,
+          _ts: Date.now(), 
+          _source: "live" 
+        };
+        commodityLiveCache[symbol] = { ts: Date.now(), quote };
+        quoteCache[symbol] = quote;
+        saveJSON(LS.cache, quoteCache);
+        return quote;
+      }
+    }
+    
+    // Fallback: Try freeforexapi as secondary
+    const fallbackRes = await fetch(`https://freeforexapi.com/api/live?pairs=${code}USD`, { cache: "no-store" });
+    if (fallbackRes.ok) {
+      const data = await fallbackRes.json();
+      if (data && data.rates && data.rates[code + "USD"]) {
+        const rate = data.rates[code + "USD"];
+        const price = rate.rate;
+        const prev = quoteCache[symbol];
+        const prevClose = (prev && prev._source === "live") ? prev.c : price;
+        const change = price - prevClose;
+        const changePct = prevClose ? (change/prevClose)*100 : 0;
+        const quote = { c: price, d: change, dp: changePct, h: price * 1.01, l: price * 0.99, o: prevClose, pc: prevClose, _ts: Date.now(), _source: "live" };
+        commodityLiveCache[symbol] = { ts: Date.now(), quote };
+        quoteCache[symbol] = quote;
+        saveJSON(LS.cache, quoteCache);
+        return quote;
+      }
+    }
+    return null;
+  } catch(e) { 
+    return null; 
+  }
+}
+
+// --- Metals: gold-api.com ---
+const METAL_SYMBOL_MAP = { "XAU/USD": "XAU", "XAG/USD": "XAG", "XPT/USD": "XPT", "XPD/USD": "XPD" };
+const metalLiveCache = {};
+const METAL_TTL_MS = 30 * 1000;
+
+async function fetchMetal(symbol){
+  const code = METAL_SYMBOL_MAP[symbol];
+  if (!code) return null;
+  const cached = metalLiveCache[symbol];
+  if (cached && (Date.now() - cached.ts) < METAL_TTL_MS) return cached.quote;
+  try {
+    const res = await fetch(`https://api.gold-api.com/price/${code}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const price = j.price ?? j.rate ?? j.value ?? null;
+    if (price === null || isNaN(price)) return null;
+    const change = j.ch ?? j.change ?? 0;
+    const changePct = j.chp ?? j.change_percent ?? j.changePercent ?? 0;
+    const quote = { c: Number(price), d: Number(change) || 0, dp: Number(changePct) || 0, h: Number(j.high_price ?? j.high ?? price), l: Number(j.low_price ?? j.low ?? price), o: Number(j.open_price ?? j.open ?? price), pc: Number(j.prev_close_price ?? j.previous_close ?? price), _ts: Date.now(), _source: "live" };
+    metalLiveCache[symbol] = { ts: Date.now(), quote };
+    quoteCache[symbol] = quote;
+    saveJSON(LS.cache, quoteCache);
+    return quote;
+  } catch(e) { return null; }
+}
+
+// --- FX: Frankfurter ---
+let fxBatchCache = null;
+const FX_TTL_MS = 60 * 60 * 1000;
+async function fetchFxBatch(){
+  if (fxBatchCache && (Date.now() - fxBatchCache.ts) < FX_TTL_MS) return fxBatchCache.rates;
+  try {
+    const res = await fetch("https://api.frankfurter.dev/v1/latest?base=USD", { cache: "no-store" });
+    if (!res.ok) return fxBatchCache ? fxBatchCache.rates : null;
+    const j = await res.json();
+    if (j && j.rates && typeof j.rates === "object"){ fxBatchCache = { ts: Date.now(), rates: j.rates }; return j.rates; }
+    return fxBatchCache ? fxBatchCache.rates : null;
+  } catch(e){ return fxBatchCache ? fxBatchCache.rates : null; }
+}
+
+async function fetchFxLive(symbol){
+  const [, pair] = symbol.split(":");
+  const [base, quote] = pair.split("_");
+  const rates = await fetchFxBatch();
+  if (!rates) return null;
+  let rate = null;
+  if (base === "USD" && rates[quote] !== undefined) rate = rates[quote];
+  else if (quote === "USD" && rates[base] !== undefined) rate = 1 / rates[base];
+  else if (rates[base] !== undefined && rates[quote] !== undefined) rate = rates[quote] / rates[base];
+  if (rate === null || isNaN(rate)) return null;
+  const prev = quoteCache[symbol];
+  const prevClose = (prev && prev._source === "live") ? prev.c : rate;
+  const change = rate - prevClose;
+  const changePct = prevClose ? (change/prevClose)*100 : 0;
+  const q = { c: rate, d: change, dp: changePct, h: Math.max(rate, prevClose), l: Math.min(rate, prevClose), o: prevClose, pc: prevClose, _ts: Date.now(), _source: "live" };
+  quoteCache[symbol] = q;
+  saveJSON(LS.cache, quoteCache);
+  return q;
+}
+
+// --- Crypto: CoinGecko (batch fetch for all 30+ cryptos) ---
+let cryptoBatchCache = null;
+const CRYPTO_TTL_MS = 45 * 1000;
+async function fetchCryptoBatch(){
+  if (cryptoBatchCache && (Date.now() - cryptoBatchCache.ts) < CRYPTO_TTL_MS) return cryptoBatchCache.data;
+  const ids = CRYPTO_ASSETS.map(a => a.symbol.replace("CG:","")).join(",");
+  try {
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(ids)}&vs_currencies=usd&include_24hr_change=true`, { cache: "no-store" });
+    if (!res.ok) return cryptoBatchCache ? cryptoBatchCache.data : null;
+    const j = await res.json();
+    if (j && typeof j === "object" && Object.keys(j).length){ cryptoBatchCache = { ts: Date.now(), data: j }; return j; }
+    return cryptoBatchCache ? cryptoBatchCache.data : null;
+  } catch(e){ return cryptoBatchCache ? cryptoBatchCache.data : null; }
+}
+
+async function fetchCryptoLive(symbol){
+  const id = symbol.replace("CG:","");
+  const all = await fetchCryptoBatch();
+  if (!all || !all[id]) return null;
+  const entry = all[id];
+  const price = entry.usd;
+  if (price === undefined || isNaN(price)) return null;
+  const changePct = entry.usd_24h_change ?? 0;
+  const prevClose = changePct ? price / (1 + changePct/100) : price;
+  const change = price - prevClose;
+  const q = { c: price, d: change, dp: changePct, h: price, l: price, o: prevClose, pc: prevClose, _ts: Date.now(), _source: "live" };
+  quoteCache[symbol] = q;
+  saveJSON(LS.cache, quoteCache);
+  return q;
+}
+
+// --- Bonds: US Treasury ---
+let bondBatchCache = null;
+const BOND_TTL_MS = 6 * 60 * 60 * 1000;
+const UST_CATEGORY_MAP = { "BILLS": "Treasury Bills", "NOTES": "Treasury Notes", "BONDS": "Treasury Bonds" };
+async function fetchBondBatch(){
+  if (bondBatchCache && (Date.now() - bondBatchCache.ts) < BOND_TTL_MS) return bondBatchCache.data;
+  try {
+    const url = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?fields=record_date,security_desc,security_type_desc,avg_interest_rate_amt&sort=-record_date&page[size]=100&format=json";
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return bondBatchCache ? bondBatchCache.data : null;
+    const j = await res.json();
+    if (j && Array.isArray(j.data) && j.data.length){ bondBatchCache = { ts: Date.now(), data: j.data }; return j.data; }
+    return bondBatchCache ? bondBatchCache.data : null;
+  } catch(e){ return bondBatchCache ? bondBatchCache.data : null; }
+}
+
+async function fetchBondLive(symbol){
+  const categoryKey = symbol.replace("UST:","");
+  const categoryLabel = UST_CATEGORY_MAP[categoryKey];
+  const rows = await fetchBondBatch();
+  if (!rows || !categoryLabel) return null;
+  const row = rows.find(r => (r.security_desc || "").trim().toLowerCase() === categoryLabel.toLowerCase());
+  if (!row) return null;
+  const rate = parseFloat(row.avg_interest_rate_amt);
+  if (isNaN(rate)) return null;
+  const prev = quoteCache[symbol];
+  const prevClose = (prev && prev._source === "live") ? prev.c : rate;
+  const change = rate - prevClose;
+  const changePct = prevClose ? (change/prevClose)*100 : 0;
+  const q = { c: rate, d: change, dp: changePct, h: Math.max(rate, prevClose), l: Math.min(rate, prevClose), o: prevClose, pc: prevClose, _ts: Date.now(), _source: "live" };
+  quoteCache[symbol] = q;
+  saveJSON(LS.cache, quoteCache);
+  return q;
+}
+
+// --- Stocks: Finnhub (optional) ---
+async function fetchStock(symbol){
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(apiKey)}`, { cache: "no-store" });
+    if (res.ok){
+      const data = await res.json();
+      if (data && typeof data.c === "number" && data.c !== 0){
+        quoteCache[symbol] = { ...data, _ts: Date.now(), _source: "live" };
+        saveJSON(LS.cache, quoteCache);
+        return quoteCache[symbol];
+      }
+    }
+  } catch(e){}
+  return null;
+}
+
+// --- Main fetch with caching for speed ---
+async function fetchQuote(symbol){
+  // Check cache first for speed
+  if (quoteCache[symbol] && quoteCache[symbol]._source === "live" && (Date.now() - quoteCache[symbol]._ts) < 60000) {
+    return quoteCache[symbol];
+  }
+  
+  // Energy & Agriculture (now using marketdata.app)
+  if (COMMODITY_SYMBOL_MAP[symbol]) {
+    const live = await fetchCommodityLive(symbol);
+    if (live) return live;
+  }
+  // Metals
+  if (METAL_SYMBOL_MAP[symbol]) {
+    const live = await fetchMetal(symbol);
+    if (live) return live;
+  }
+  // FX
+  if (symbol.startsWith("FX:")) {
+    const live = await fetchFxLive(symbol);
+    if (live) return live;
+  }
+  // Crypto
+  if (symbol.startsWith("CG:")) {
+    const live = await fetchCryptoLive(symbol);
+    if (live) return live;
+  }
+  // Bonds
+  if (symbol.startsWith("UST:")) {
+    const live = await fetchBondLive(symbol);
+    if (live) return live;
+  }
+  // Stocks
+  const stock = await fetchStock(symbol);
+  if (stock) return stock;
+
+  // Fallback
+  if (quoteCache[symbol]) return { ...quoteCache[symbol], _source: quoteCache[symbol]._source || "cache" };
+  if (SAMPLE_DATA[symbol]) return { ...SAMPLE_DATA[symbol], _ts: null, _source: "sample" };
+  return null;
+}
+
+/* ============================== CHART ============================== */
+
+let currentChartSymbol = "XAU/USD";
+let currentChartSeries = [];
+
+async function fetchDailySeries(symbol, days){
+  days = days || 30;
+  // For stocks with Finnhub key
+  if (apiKey && !symbol.startsWith("FX:") && !symbol.startsWith("CG:") && !symbol.startsWith("UST:") && !COMMODITY_SYMBOL_MAP[symbol] && !METAL_SYMBOL_MAP[symbol]) {
+    try {
+      const to = Math.floor(Date.now()/1000);
+      const from = to - days*24*60*60;
+      const res = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=D&from=${from}&to=${to}&token=${encodeURIComponent(apiKey)}`, { cache: "no-store" });
+      if (res.ok){
+        const data = await res.json();
+        if (data && data.s === "ok" && Array.isArray(data.c) && data.c.length > 5){
+          return data.c.map((close, i) => ({ t: data.t[i]*1000, c: close, h: data.h[i], l: data.l[i], o: data.o[i] }));
+        }
+      }
+    } catch(e){}
+  }
+  // For long-term (1y+), generate more realistic synthetic series
+  const q = await fetchQuote(symbol);
+  const base = q ? q.c : 100;
+  let price = base * (0.6 + Math.random() * 0.4);
+  const series = [];
+  const seed = symbol.split("").reduce((a,c)=>a+c.charCodeAt(0),0);
+  let rnd = seed;
+  function rand(){ rnd = (rnd * 9301 + 49297) % 233280; return rnd/233280; }
+  for (let i=0;i<days;i++){
+    const drift = (base - price) * 0.015;
+    const noise = (rand()-0.5) * base * (0.01 + 0.02 * (days/365));
+    price = price + drift + noise;
+    series.push({ t: Date.now() - (days-i)*86400000, c: Math.max(price, 0.01) });
+  }
+  series[series.length-1].c = base;
+  return series;
+}
+
+function drawLineChart(canvas, series, opts){
+  opts = opts || {};
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(rect.width, 300);
+  const h = opts.height || 280;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,w,h);
+
+  if (!series || series.length < 2){
+    ctx.fillStyle = "#8b93a3";
+    ctx.font = "13px -apple-system, sans-serif";
+    ctx.fillText("Not enough data", 16, h/2);
+    return;
+  }
+
+  const padding = { top: 16, right: 12, bottom: 24, left: 56 };
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+
+  const closes = series.map(p=>p.c);
+  let min = Math.min(...closes), max = Math.max(...closes);
+  if (min === max) { min -= 1; max += 1; }
+  const pad = (max-min) * 0.08;
+  min -= pad; max += pad;
+
+  const xFor = i => padding.left + (i/(series.length-1)) * plotW;
+  const yFor = v => padding.top + plotH - ((v-min)/(max-min)) * plotH;
+
+  // Grid
+  ctx.strokeStyle = "#222836";
+  ctx.lineWidth = 1;
+  ctx.font = "11px -apple-system, sans-serif";
+  ctx.fillStyle = "#8b93a3";
+  const gridLines = 4;
+  for (let g=0; g<=gridLines; g++){
+    const v = min + (max-min)*(g/gridLines);
+    const y = yFor(v);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(w-padding.right, y);
+    ctx.stroke();
+    ctx.fillText(fmt(v, v < 5 ? 4 : 2), 4, y+4);
+  }
+
+  // X labels - more dates for long periods
+  const labelCount = series.length > 200 ? 6 : 3;
+  const step = Math.floor((series.length-1) / labelCount);
+  for (let i=0; i<=labelCount; i++){
+    const idx = Math.min(i * step, series.length-1);
+    const d = new Date(series[idx].t);
+    const label = d.toLocaleDateString(undefined,{month:"short", day:"numeric", year: series.length > 365 ? "numeric" : undefined});
+    const x = xFor(idx);
+    ctx.fillText(label, Math.max(padding.left, Math.min(x-18, w-padding.right-36)), h-6);
+  }
+
+  const up = closes[closes.length-1] >= closes[0];
+  const lineColor = up ? "#3ecf8e" : "#ff5d6c";
+
+  // Fill
+  ctx.beginPath();
+  ctx.moveTo(xFor(0), yFor(closes[0]));
+  closes.forEach((c,i)=> ctx.lineTo(xFor(i), yFor(c)));
+  ctx.lineTo(xFor(closes.length-1), padding.top+plotH);
+  ctx.lineTo(xFor(0), padding.top+plotH);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, padding.top, 0, padding.top+plotH);
+  grad.addColorStop(0, up ? "rgba(62,207,142,.18)" : "rgba(255,93,108,.18)");
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(xFor(0), yFor(closes[0]));
+  closes.forEach((c,i)=> ctx.lineTo(xFor(i), yFor(c)));
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  ctx.stroke();
+
+  // Last point
+  const lastX = xFor(closes.length-1), lastY = yFor(closes[closes.length-1]);
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 4, 0, Math.PI*2);
+  ctx.fillStyle = lineColor;
+  ctx.fill();
+
+  canvas._chartGeom = { padding, plotW, plotH, min, max, series, xFor, yFor };
+}
+
+function setupChartHover(canvas, tooltipEl){
+  canvas.addEventListener("mousemove", (e)=>{
+    const geom = canvas._chartGeom;
+    if (!geom) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const relX = (mouseX - geom.padding.left) / geom.plotW;
+    const idx = Math.round(relX * (geom.series.length-1));
+    if (idx < 0 || idx >= geom.series.length) { tooltipEl.style.opacity = 0; return; }
+    const point = geom.series[idx];
+    const d = new Date(point.t);
+    tooltipEl.innerHTML = `<b>${fmt(point.c)}</b><br>${d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}`;
+    tooltipEl.style.left = Math.min(mouseX+10, rect.width-110) + "px";
+    tooltipEl.style.top = "8px";
+    tooltipEl.style.opacity = 1;
+  });
+  canvas.addEventListener("mouseleave", ()=> tooltipEl.style.opacity = 0);
+}
+
+async function loadChart(symbol, days){
+  currentChartSymbol = symbol;
+  days = days || parseInt($("#chartRange").value) || 30;
+  const titleEl = $("#chartTitle");
+  const subEl = $("#chartSubtitle");
+  const priceEl = $("#chartLatestPrice");
+  
+  const allItems = [...ALL_STOCKS, ...PRECIOUS_METALS, ...ENERGY_COMMODITIES, ...AGRICULTURE, ...USD_CROSS_RATES, ...OTHER_FX, ...CRYPTO_ASSETS, ...BOND_YIELDS];
+  const found = allItems.find(x => x.symbol === symbol);
+  titleEl.textContent = (found ? found.name : symbol) + " (" + symbol + ")";
+  subEl.textContent = "Loading…";
+
+  const [series, q] = await Promise.all([ fetchDailySeries(symbol, days), fetchQuote(symbol) ]);
+  currentChartSeries = series;
+
+  if (q && q._source === "live") {
+    subEl.textContent = `Live price · ${days}-day history`;
+  } else {
+    subEl.textContent = `Using cached/sample data · ${days}-day history`;
+  }
+
+  if (q){
+    const up = q.d >= 0;
+    priceEl.innerHTML = `${fmt(q.c)}<div style="font-size:13px; font-weight:600; color:${up?'var(--green)':'var(--red)'}">${up?"▲":"▼"} ${fmt(Math.abs(q.dp),2)}%</div>`;
+  } else {
+    priceEl.textContent = "—";
+  }
+
+  const canvas = $("#priceChart");
+  drawLineChart(canvas, series, { height: 280 });
+  setupChartHover(canvas, $("#chartTooltip"));
+
+  $all(".chart-quick").forEach(b=> b.classList.toggle("active", b.dataset.symbol === symbol));
+}
+
+/* ============================== RENDERING (FAST) ============================== */
+
+function cardHTML(symbol, name, q){
+  if (!q) {
+    return `<div class="card"><div class="sym">${symbol}</div><div class="name">${name||""}</div><div class="empty" style="padding:10px 0;">No data</div></div>`;
+  }
+  const up = q.d >= 0;
+  let sourceTag = "";
+  let sourceColor = "var(--muted)";
+  if (q._source === "live"){ sourceTag = "● live"; sourceColor = "var(--green)"; }
+  else if (q._source === "cache"){ const ageMin = q._ts ? Math.round((Date.now()-q._ts)/60000) : null; sourceTag = ageMin !== null ? `cached ${ageMin}m ago` : "cached"; sourceColor = "var(--warn)"; }
+  else { sourceTag = "⚠ fallback"; sourceColor = "var(--red)"; }
+  const inWatch = watchlist.includes(symbol);
+  return `<div class="card" data-symbol="${symbol}">
+    <div class="row" style="justify-content:space-between; align-items:flex-start;">
+      <div><div class="sym">${symbol}</div><div class="name">${name || ""}</div></div>
+      <button data-action="watch" data-symbol="${symbol}" style="padding:4px 8px; font-size:16px; background:transparent; border:none;">${inWatch?"★":"☆"}</button>
+    </div>
+    <div class="price">${fmt(q.c)}</div>
+    <div class="chg ${up?"up":"down"}">${up?"▲":"▼"} ${fmt(Math.abs(q.d))} (${fmt(Math.abs(q.dp),2)}%)</div>
+    <div class="meta"><span style="color:${sourceColor}; font-weight:600;">${sourceTag}</span></div>
+    <div class="actions"><button data-action="buy" data-symbol="${symbol}">Buy</button><button data-action="sell" data-symbol="${symbol}">Sell</button></div>
+  </div>`;
+}
+
+// Fast render - shows cached/sample first, then updates live
+async function renderGridFast(containerSel, list, limit){
+  const el = $(containerSel);
+  if (!el) return;
+  const displayList = limit ? list.slice(0, limit) : list;
+  
+  // Show cached/sample data immediately
+  el.innerHTML = displayList.map(item => {
+    const q = quoteCache[item.symbol] || (SAMPLE_DATA[item.symbol] ? {...SAMPLE_DATA[item.symbol], _source:"sample"} : null);
+    return cardHTML(item.symbol, item.name, q);
+  }).join("");
+  
+  // Then fetch live updates in parallel
+  const fetchPromises = displayList.map(async (item) => {
+    const q = await fetchQuote(item.symbol);
+    const card = el.querySelector(`.card[data-symbol="${CSS.escape(item.symbol)}"]`);
+    if (card) card.outerHTML = cardHTML(item.symbol, item.name, q);
+  });
+  
+  // Don't wait for all to complete - let them update progressively
+  Promise.allSettled(fetchPromises);
+}
+
+function nameFor(symbol){
+  const all = [...ALL_STOCKS, ...PRECIOUS_METALS, ...ENERGY_COMMODITIES, ...AGRICULTURE, ...USD_CROSS_RATES, ...OTHER_FX, ...CRYPTO_ASSETS, ...BOND_YIELDS];
+  const hit = all.find(x=>x.symbol===symbol);
+  return hit ? hit.name : symbol;
+}
+
+/* ============================== NETWORK STATUS ============================== */
+
+// Removed status display - no longer showing any status badge
+
+async function checkOnline(){
+  if (location.protocol === "file:"){ 
+    const el = $("#fileProtocolBanner"); 
+    if (el) el.style.display = "block"; 
+    return false; 
+  }
+  try {
+    // Try marketdata.app first
+    const res = await fetch("https://marketdata.app/api/v1/commodities/WTI?apikey=test", { cache: "no-store" });
+    if (res.ok) { 
+      return true; 
+    }
+    // Try gold-api as secondary
+    const res2 = await fetch("https://api.gold-api.com/price/XAU", { cache: "no-store" });
+    if (res2.ok) { 
+      return true; 
+    }
+    return false;
+  } catch(e){ 
+    return false; 
+  }
+}
+
+/* ============================== VIEW LOADERS ============================== */
+
+async function loadMarketView(){
+  await renderGridFast("#grid-stocks", ALL_STOCKS);
+}
+
+async function loadCommoditiesView(){
+  await renderGridFast("#grid-metals", PRECIOUS_METALS);
+  await renderGridFast("#grid-energy", ENERGY_COMMODITIES);
+  await renderGridFast("#grid-agriculture", AGRICULTURE);
+  await renderGridFast("#grid-usdfx", USD_CROSS_RATES);
+  await renderGridFast("#grid-otherfx", OTHER_FX);
+}
+
+async function loadCryptoView(){
+  await renderGridFast("#grid-crypto", CRYPTO_ASSETS);
+}
+
+async function loadBondsView(){
+  await renderGridFast("#grid-bonds", BOND_YIELDS);
+}
+
+async function loadChartsView(){
+  await loadChart(currentChartSymbol);
+  await renderStatsBar();
+}
+
+async function renderWatchlist(){
+  const el = $("#grid-watchlist");
+  const empty = $("#watchlistEmpty");
+  if (watchlist.length === 0){ el.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  await renderGridFast("#grid-watchlist", watchlist.map(s=>({symbol:s, name:nameFor(s)})));
+}
+
+/* ============================== STATS BAR ============================== */
+
+function statsRowHTML(symbol, name, q){
+  if (!q) return `<div class="stats-row"><div class="sname">${name||symbol}</div><div class="sprice">—</div></div>`;
+  const up = q.dp >= 0;
+  const magnitude = Math.min(Math.abs(q.dp) / 3, 1);
+  const color = up ? "var(--green)" : "var(--red)";
+  const fillStyle = up ? `left:50%; width:${magnitude*50}%; background:${color};` : `right:50%; width:${magnitude*50}%; background:${color};`;
+  return `<div class="stats-row" data-symbol="${symbol}" style="cursor:pointer;">
+    <div class="sname">${name || symbol}</div>
+    <div class="sprice">${fmt(q.c)}</div>
+    <div class="sbar"><div class="sbar-fill" style="${fillStyle}"></div></div>
+    <div class="schg" style="color:${color}">${up?"+":""}${fmt(q.dp,2)}%</div>
+  </div>`;
+}
+
+async function renderStatsBar(){
+  const el = $("#statsBar");
+  el.innerHTML = `<div class="empty">Loading stats…</div>`;
+  
+  // Show top 20 stocks for speed
+  const topStocks = ALL_STOCKS.slice(0, 20);
+  const stocksRows = await Promise.all(topStocks.map(async item => {
+    const q = await fetchQuote(item.symbol);
+    return statsRowHTML(item.symbol, item.name, q);
+  }));
+  
+  const metalsRows = await Promise.all(PRECIOUS_METALS.map(async item => {
+    const q = await fetchQuote(item.symbol);
+    return statsRowHTML(item.symbol, item.name, q);
+  }));
+  
+  const energyRows = await Promise.all(ENERGY_COMMODITIES.map(async item => {
+    const q = await fetchQuote(item.symbol);
+    return statsRowHTML(item.symbol, item.name, q);
+  }));
+  
+  const agRows = await Promise.all(AGRICULTURE.map(async item => {
+    const q = await fetchQuote(item.symbol);
+    return statsRowHTML(item.symbol, item.name, q);
+  }));
+  
+  const cryptoRows = await Promise.all(CRYPTO_ASSETS.slice(0, 10).map(async item => {
+    const q = await fetchQuote(item.symbol);
+    return statsRowHTML(item.symbol, item.name, q);
+  }));
+  
+  const fxRows = await Promise.all(USD_CROSS_RATES.slice(0, 5).map(async item => {
+    const q = await fetchQuote(item.symbol);
+    return statsRowHTML(item.symbol, item.name, q);
+  }));
+  
+  el.innerHTML = `
+    <div class="stats-group-label">📈 Top Stocks</div>${stocksRows.join("")}
+    <div class="stats-group-label">🥇 Precious Metals</div>${metalsRows.join("")}
+    <div class="stats-group-label">🛢️ Energy</div>${energyRows.join("")}
+    <div class="stats-group-label">🌾 Agriculture</div>${agRows.join("")}
+    <div class="stats-group-label">🪙 Crypto (Top 10)</div>${cryptoRows.join("")}
+    <div class="stats-group-label">💵 FX Rates</div>${fxRows.join("")}
+  `;
+}
+
+document.addEventListener("click", (e)=>{
+  const row = e.target.closest(".stats-row[data-symbol]");
+  if (!row) return;
+  const symbol = row.dataset.symbol;
+  $all(".tab").forEach(t=>t.classList.remove("active"));
+  $('.tab[data-view="charts"]').classList.add("active");
+  $all(".view").forEach(v=>v.classList.remove("active"));
+  $("#view-charts").classList.add("active");
+  loadChart(symbol);
+});
+
+/* ============================== PORTFOLIO ============================== */
+
+function executeTrade(symbol, side, qty, price, reason){
+  const cost = qty * price;
+  if (side === "buy"){
+    if (cost > portfolio.cash){ toast("Insufficient paper cash"); return false; }
+    portfolio.cash -= cost;
+    const h = portfolio.holdings[symbol] || { qty:0, avgCost:0 };
+    const newQty = h.qty + qty;
+    h.avgCost = ((h.avgCost * h.qty) + cost) / newQty;
+    h.qty = newQty;
+    portfolio.holdings[symbol] = h;
+  } else {
+    const h = portfolio.holdings[symbol];
+    if (!h || h.qty < qty){ toast("Not enough shares to sell"); return false; }
+    h.qty -= qty;
+    portfolio.cash += cost;
+    if (h.qty <= 0.0000001) delete portfolio.holdings[symbol];
+  }
+  trades.unshift({ ts: Date.now(), symbol, side, qty, price, reason: reason || "" });
+  saveJSON(LS.portfolio, portfolio);
+  saveJSON(LS.trades, trades);
+  toast(`${side==="buy"?"Bought":"Sold"} ${qty} ${symbol} @ ${fmt(price)} (paper)`);
+  renderPortfolio();
+  return true;
+}
+
+async function renderPortfolio(){
+  let holdingsValue = 0;
+  const rows = [];
+  for (const symbol of Object.keys(portfolio.holdings)){
+    const h = portfolio.holdings[symbol];
+    const q = await fetchQuote(symbol);
+    const last = q ? q.c : h.avgCost;
+    const mktVal = last * h.qty;
+    const pl = mktVal - (h.avgCost * h.qty);
+    holdingsValue += mktVal;
+    rows.push(`<tr><td>${symbol}</td><td>${fmt(h.qty,4)}</td><td>${money(h.avgCost)}</td><td>${money(last)}</td><td>${money(mktVal)}</td><td style="color:${pl>=0?'var(--green)':'var(--red)'}">${money(pl)}</td><td><button data-action="sell" data-symbol="${symbol}">Sell</button></td></tr>`);
+  }
+  $("#holdingsBody").innerHTML = rows.join("");
+  $("#holdingsEmpty").style.display = rows.length ? "none" : "block";
+
+  const equity = portfolio.cash + holdingsValue;
+  const pl = equity - 10000;
+  $("#statCash").textContent = money(portfolio.cash);
+  $("#statHoldings").textContent = money(holdingsValue);
+  $("#statEquity").textContent = money(equity);
+  const plEl = $("#statPL");
+  plEl.textContent = money(pl);
+  plEl.style.color = pl >= 0 ? "var(--green)" : "var(--red)";
+
+  const tradeRows = trades.slice(0,50).map(t => `<tr><td>${new Date(t.ts).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</td><td>${t.symbol}</td><td><span class="badge ${t.side==='buy'?'buy':'sell'}">${t.side.toUpperCase()}</span></td><td>${fmt(t.qty,4)}</td><td>${money(t.price)}</td><td>${t.reason}</td></tr>`);
+  $("#tradesBody").innerHTML = tradeRows.join("");
+  $("#tradesEmpty").style.display = tradeRows.length ? "none" : "block";
+}
+
+$("#resetPortfolioBtn").addEventListener("click", ()=>{
+  if (!confirm("Reset paper account?")) return;
+  portfolio = freshPortfolio();
+  trades = [];
+  saveJSON(LS.portfolio, portfolio);
+  saveJSON(LS.trades, trades);
+  renderPortfolio();
+  toast("Reset");
+});
+
+/* ============================== AI AGENT ============================== */
+
+function logAgent(msg){
+  const log = $("#agentLog");
+  if (log.firstChild && log.firstChild.textContent === "Agent idle.") log.innerHTML = "";
+  const line = document.createElement("div");
+  line.textContent = `[${nowStr()}] ${msg}`;
+  log.prepend(line);
+}
+
+function sma(series, period){ if (series.length < period) return null; const slice = series.slice(-period); return slice.reduce((a,p)=>a+p.c,0) / period; }
+function rsi(series, period){ period = period || 14; if (series.length < period+1) return null; let gains=0, losses=0; for (let i = series.length-period; i < series.length; i++){ const diff = series[i].c - series[i-1].c; if (diff >= 0) gains += diff; else losses -= diff; } if (losses === 0) return 100; const rs = (gains/period) / (losses/period); return 100 - (100/(1+rs)); }
+
+async function runAgent(){
+  const fast = parseInt($("#paramFast").value) || 5;
+  const slow = parseInt($("#paramSlow").value) || 20;
+  const rsiBuy = parseFloat($("#paramRsiBuy").value) || 35;
+  const rsiSell = parseFloat($("#paramRsiSell").value) || 65;
+  const maxPos = parseFloat($("#paramMaxPos").value) || 2000;
+  const mode = $("#agentMode").value;
+
+  const universe = Array.from(new Set([...watchlist, ...ALL_STOCKS.slice(0,20).map(s=>s.symbol)]));
+  logAgent(`Analyzing ${universe.length} symbols…`);
+
+  const rowsHtml = [];
+  for (const symbol of universe){
+    const series = await fetchDailySeries(symbol, Math.max(slow+10, 35));
+    const q = await fetchQuote(symbol);
+    if (!series || series.length < 5 || !q) continue;
+    const maFast = sma(series, Math.min(fast, series.length));
+    const maSlow = sma(series, Math.min(slow, series.length));
+    const r = rsi(series, Math.min(14, series.length-1));
+    const price = q.c;
+
+    let signal = "hold";
+    let reasoning = [];
+    if (maFast !== null && maSlow !== null){
+      if (maFast > maSlow) reasoning.push(`Fast MA(${fast}) > Slow MA(${slow})`);
+      else reasoning.push(`Fast MA(${fast}) < Slow MA(${slow})`);
+    }
+    if (r !== null) reasoning.push(`RSI=${r.toFixed(1)}`);
+
+    const trendUp = maFast !== null && maSlow !== null && maFast > maSlow;
+    const oversold = r !== null && r <= rsiBuy;
+    const overbought = r !== null && r >= rsiSell;
+
+    if (trendUp && oversold){ signal = "buy"; reasoning.push("Oversold in uptrend"); }
+    else if (trendUp && !overbought){ signal = "buy"; reasoning.push("Uptrend"); }
+    else if (!trendUp && overbought){ signal = "sell"; reasoning.push("Overbought in downtrend"); }
+    else if (trendUp && overbought){ signal = "sell"; reasoning.push("Overbought"); }
+    else { signal = "hold"; }
+
+    rowsHtml.push(`<tr><td>${symbol}</td><td>${money(price)}</td><td><span class="badge ${signal}">${signal.toUpperCase()}</span></td><td>${r!==null?r.toFixed(1):"—"}</td><td>${maFast!==null?fmt(maFast):"—"} / ${maSlow!==null?fmt(maSlow):"—"}</td><td style="max-width:280px; color:var(--muted); font-size:12px;">${reasoning.join("; ")}</td><td>${signal!=="hold" ? `<button data-agent-trade="${symbol}" data-side="${signal}" data-price="${price}">${signal==="buy"?"Buy":"Sell"}</button>` : ""}</td></tr>`);
+
+    if (mode === "auto" && signal !== "hold"){
+      const qty = signal === "buy" ? Math.max(1, Math.floor((Math.min(maxPos, portfolio.cash)) / price)) : (portfolio.holdings[symbol] ? portfolio.holdings[symbol].qty : 0);
+      if (qty > 0){ const ok = executeTrade(symbol, signal, qty, price, reasoning.join("; ")); if (ok) logAgent(`AUTO ${signal.toUpperCase()} ${qty} ${symbol}`); }
+    }
+  }
+
+  $("#signalsBody").innerHTML = rowsHtml.join("");
+  $("#signalsEmpty").style.display = rowsHtml.length ? "none" : "block";
+  logAgent("Analysis complete.");
+  if (mode === "auto") renderPortfolio();
+}
+
+document.addEventListener("click", (e)=>{
+  const btn = e.target.closest("button[data-agent-trade]");
+  if (!btn) return;
+  const symbol = btn.dataset.agentTrade;
+  const side = btn.dataset.side;
+  const price = parseFloat(btn.dataset.price);
+  const maxPos = parseFloat($("#paramMaxPos").value) || 2000;
+  let qty = side === "buy" ? Math.max(1, Math.floor(Math.min(maxPos, portfolio.cash)/price)) : (portfolio.holdings[symbol] ? portfolio.holdings[symbol].qty : 0);
+  if (!qty){ toast("No eligible quantity"); return; }
+  if (executeTrade(symbol, side, qty, price, "Agent confirmed")){ logAgent(`CONFIRMED ${side.toUpperCase()} ${qty} ${symbol}`); }
+});
+
+$("#runAgentBtn").addEventListener("click", runAgent);
+
+/* ============================== EVENT BINDINGS ============================== */
+
+document.addEventListener("click", async (e)=>{
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const symbol = btn.dataset.symbol;
+  if (action === "watch"){
+    const idx = watchlist.indexOf(symbol);
+    if (idx >= 0) watchlist.splice(idx,1); else watchlist.push(symbol);
+    saveJSON(LS.watchlist, watchlist);
+    refreshActiveView();
+    toast(idx>=0 ? `Removed ${symbol}` : `Added ${symbol}`);
+  } else if (action === "buy" || action === "sell"){
+    const q = await fetchQuote(symbol);
+    if (!q){ toast("No data for " + symbol); return; }
+    const qtyStr = prompt(`${action} ${symbol} @ ${fmt(q.c)}\nQuantity:`, "1");
+    if (qtyStr === null) return;
+    const qty = parseFloat(qtyStr);
+    if (!qty || qty <= 0){ toast("Invalid quantity"); return; }
+    executeTrade(symbol, action, qty, q.c, "Manual");
+  }
+});
+
+$("#refreshBtn").addEventListener("click", async ()=>{
+  $("#refreshBtn").disabled = true;
+  Object.keys(metalLiveCache).forEach(k => delete metalLiveCache[k]);
+  Object.keys(commodityLiveCache).forEach(k => delete commodityLiveCache[k]);
+  fxBatchCache = null;
+  cryptoBatchCache = null;
+  bondBatchCache = null;
+  await checkOnline();
+  await refreshActiveView();
+  $("#refreshBtn").disabled = false;
+  toast("Refreshed");
+});
+
+/* ============================== SEARCH ============================== */
+
+async function handleSearch(){
+  const raw = $("#searchInput").value.trim();
+  if (!raw) return;
+  const symbol = raw.toUpperCase();
+  const q = await fetchQuote(symbol);
+  if (!q){ toast(`No data for "${symbol}"`); return; }
+  const el = $("#grid-stocks");
+  const existing = el.querySelector(`[data-symbol="${CSS.escape(symbol)}"]`);
+  if (existing) { existing.scrollIntoView({behavior:"smooth", block:"center"}); return; }
+  el.insertAdjacentHTML("afterbegin", cardHTML(symbol, raw, q));
+  toast(`Found ${symbol}`);
+}
+$("#searchBtn").addEventListener("click", handleSearch);
+$("#searchInput").addEventListener("keydown", (e)=>{ if (e.key === "Enter") handleSearch(); });
+
+/* ============================== TABS ============================== */
+
+$all(".tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    $all(".tab").forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    $all(".view").forEach(v=>v.classList.remove("active"));
+    $("#view-"+tab.dataset.view).classList.add("active");
+    refreshActiveView();
+  });
+});
+
+function refreshActiveView(){
+  const active = $(".tab.active").dataset.view;
+  if (active === "market") loadMarketView();
+  else if (active === "commodities") loadCommoditiesView();
+  else if (active === "crypto") loadCryptoView();
+  else if (active === "bonds") loadBondsView();
+  else if (active === "charts") loadChartsView();
+  else if (active === "watchlist") renderWatchlist();
+  else if (active === "portfolio") renderPortfolio();
+}
+
+/* ============================== API KEY BANNER ============================== */
+
+if (apiKey) $("#apiKeyInput").value = "•".repeat(Math.min(apiKey.length,20));
+if (localStorage.getItem(LS.bannerHidden) === "1") $("#keyBanner").style.display = "none";
+
+$("#saveKeyBtn").addEventListener("click", async ()=>{
+  const val = $("#apiKeyInput").value.trim();
+  if (!val || val.startsWith("•")){ toast("Enter a real key"); return; }
+  apiKey = val;
+  localStorage.setItem(LS.apiKey, apiKey);
+  toast("Key saved");
+  await checkOnline();
+  await refreshActiveView();
+});
+$("#clearKeyBtn").addEventListener("click", ()=>{
+  apiKey = "";
+  localStorage.removeItem(LS.apiKey);
+  $("#apiKeyInput").value = "";
+  toast("Key cleared");
+});
+$("#dismissBannerBtn").addEventListener("click", ()=>{
+  $("#keyBanner").style.display = "none";
+  localStorage.setItem(LS.bannerHidden, "1");
+});
+
+/* ============================== CHART EVENT BINDINGS ============================== */
+
+$("#chartLoadBtn").addEventListener("click", ()=>{
+  const raw = $("#chartSymbolInput").value.trim();
+  const symbol = raw ? raw.toUpperCase() : currentChartSymbol;
+  loadChart(symbol);
+});
+$("#chartSymbolInput").addEventListener("keydown", (e)=>{ if (e.key === "Enter") $("#chartLoadBtn").click(); });
+$("#chartRange").addEventListener("change", ()=> loadChart(currentChartSymbol));
+$all(".chart-quick").forEach(btn=>{
+  btn.addEventListener("click", ()=> loadChart(btn.dataset.symbol));
+});
+window.addEventListener("resize", ()=>{
+  if ($("#view-charts").classList.contains("active") && currentChartSeries.length){
+    drawLineChart($("#priceChart"), currentChartSeries, { height: 280 });
+  }
+});
+
+window.addEventListener("online", checkOnline);
+window.addEventListener("offline", ()=> {});
+
+/* ============================== INIT ============================== */
+
+(async function init(){
+  renderClocks();
+  await checkOnline();
+  await loadMarketView();
+  await renderPortfolio();
+})();
+
+})();
+</script>
+</body>
+</html>
